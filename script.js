@@ -1,95 +1,72 @@
 document.getElementById("book-btn").addEventListener("click", function (e) {
   e.preventDefault();
 
-  //collect the data with provide ids
-  const meetingName = document.getElementById("meeting-title").value;
+  const meetingName = document.getElementById("meeting-title").value.trim();
   const rooms = document.getElementById("rooms").value;
   const date = document.getElementById("date").value;
   const fromTime = document.getElementById("from-time").value;
   const toTime = document.getElementById("to-time").value;
+  const editId = document.getElementById("edit-id").value;
 
-  //vallidation for empty fields
   if (!meetingName || !rooms || !date || !fromTime || !toTime) {
-    alert("Please Enter All the fields");
+    alert("Please fill in all fields.");
     return;
   }
 
-  console.error(meetingName, rooms, date, fromTime, toTime);
+  let bookings = JSON.parse(localStorage.getItem("bookings")) || [];
 
-  const allBookingRooms = JSON.parse(localStorage.getItem("bookings")) || [];
-
-  // check any rooms are booked
-  //   const checkRoom = allBookingRooms.find(
-  //     (booked) =>
-  //       booked.date == date &&
-  //       booked.meetingName == meetingName &&
-  //       booked.rooms === rooms &&
-  //       booked.fromTime == fromTime &&
-  //       booked.toTime == toTime
-  //   );
-  //   if (checkRoom) {
-  //     alert("Room is already booked");
-  //     return;
-  //   }
-
-  const checkRoom = allBookingRooms.find((booked) => {
+  const checkBooking = bookings.some((b) => {
     return (
-      booked.date === date &&
-      booked.rooms === rooms &&
-      fromTime < booked.toTime &&
-      toTime > booked.fromTime
+      b.id != editId &&
+      b.date === date &&
+      b.rooms === rooms &&
+      fromTime < b.toTime &&
+      toTime > b.fromTime
     );
   });
 
-  if (checkRoom) {
+  if (checkBooking) {
     alert("This room is already booked during that time.");
     return;
   }
 
-  // if any room is not booked then the new booking data will be stored or pushed
-  const newBooking = {
-    id: Date.now(),
-    meetingName,
-    date,
-    rooms,
-    fromTime,
-    toTime,
-  };
-  allBookingRooms.push(newBooking);
-  localStorage.setItem("bookings", JSON.stringify(allBookingRooms));
+  if (editId) {
+    bookings = bookings.map((b) =>
+      b.id == editId ? { ...b, meetingName, rooms, date, fromTime, toTime } : b
+    );
+    alert("Booking updated successfully.");
+  } else {
+    const newBooking = {
+      id: Date.now(),
+      meetingName,
+      rooms,
+      date,
+      fromTime,
+      toTime,
+    };
+    bookings.push(newBooking);
+    alert("Booking created successfully.");
+  }
 
-  alert("Booking Succesfully");
-
-  //after submiting the form to clear the input fields
-  document.getElementById("meeting-title").value = "";
-  document.getElementById("rooms").value = "";
-  document.getElementById("date").value = "";
-  document.getElementById("from-time").value = "";
-  document.getElementById("to-time").value = "";
-  console.log(allBookingRooms);
-  //   displayBookings();
-
-  //
-  setTimeout(() => {
-    location.reload();
-  }, 1000);
+  localStorage.setItem("bookings", JSON.stringify(bookings));
+  resetForm();
+  displayBookings();
 });
-///////////////////////////////////////////////////////////////
 
 function displayBookings() {
   const bookingList = document.getElementById("booking-list");
-  bookingList.innerHTML = ""; // Clear old content
+  bookingList.innerHTML = "";
 
-  const allBookings = JSON.parse(localStorage.getItem("bookings")) || [];
+  const bookings = JSON.parse(localStorage.getItem("bookings")) || [];
 
-  if (allBookings.length === 0) {
+  if (bookings.length === 0) {
     bookingList.innerHTML = "<p class='text-center'>No bookings yet.</p>";
     return;
   }
 
   const table = document.createElement("table");
   table.className =
-    "table table-bordered table-striped table-hover align-middle";
+    "table table-bordered table-striped table-hover align-middle mt-4";
 
   table.innerHTML = `
     <thead class="table-light">
@@ -99,25 +76,25 @@ function displayBookings() {
         <th>Date</th>
         <th>From</th>
         <th>To</th>
-        <th class="text-center">Action</th>
+        <th class="text-center">Actions</th>
       </tr>
     </thead>
     <tbody>
-      ${allBookings
+      ${bookings
         .map(
           (booking) => `
-          <tr>
-            <td>${booking.meetingName}</td>
-            <td>${booking.rooms}</td>
-            <td>${booking.date}</td>
-            <td>${booking.fromTime}</td>
-            <td>${booking.toTime}</td>
-            <td class="text-center">
-              <button class="btn btn-sm btn-primary me-2" onclick="editBooking(${booking.id})">Edit</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteBooking(${booking.id})">Delete</button>
-            </td>
-          </tr>
-        `
+        <tr>
+          <td>${booking.meetingName}</td>
+          <td>${booking.rooms}</td>
+          <td>${booking.date}</td>
+          <td>${booking.fromTime}</td>
+          <td>${booking.toTime}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-primary me-2" onclick="editBooking(${booking.id})">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteBooking(${booking.id})">Delete</button>
+          </td>
+        </tr>
+      `
         )
         .join("")}
     </tbody>
@@ -126,38 +103,35 @@ function displayBookings() {
   bookingList.appendChild(table);
 }
 
-window.addEventListener("DOMContentLoaded", displayBookings);
-
 function editBooking(id) {
-  const confirmEdit = confirm("Do u want to edit");
-  if (confirmEdit) {
-    const bookings = JSON.parse(localStorage.getItem("bookings")) || [];
-    const bookingToEdit = bookings.find((b) => b.id === id);
+  const bookings = JSON.parse(localStorage.getItem("bookings")) || [];
+  const booking = bookings.find((b) => b.id === id);
+  if (!booking) return;
 
-    if (!bookingToEdit) return;
-
-    // Fill the form with existing data
-    document.getElementById("meeting-title").value = bookingToEdit.meetingName;
-    document.getElementById("rooms").value = bookingToEdit.rooms;
-    document.getElementById("date").value = bookingToEdit.date;
-    document.getElementById("from-time").value = bookingToEdit.fromTime;
-    document.getElementById("to-time").value = bookingToEdit.toTime;
-
-    // Remove it from storage temporarily
-    const updatedBookings = bookings.filter((b) => b.id !== id);
-    localStorage.setItem("bookings", JSON.stringify(updatedBookings));
-
-    displayBookings(); // Refresh display
-  }
+  document.getElementById("meeting-title").value = booking.meetingName;
+  document.getElementById("rooms").value = booking.rooms;
+  document.getElementById("date").value = booking.date;
+  document.getElementById("from-time").value = booking.fromTime;
+  document.getElementById("to-time").value = booking.toTime;
+  document.getElementById("edit-id").value = booking.id;
 }
 
 function deleteBooking(id) {
-  const confirmDelete = confirm("Do u want to delte");
-  if (confirmDelete) {
+  if (confirm("Are you sure you want to delete this booking?")) {
     const bookings = JSON.parse(localStorage.getItem("bookings")) || [];
     const updatedBookings = bookings.filter((b) => b.id !== id);
-
     localStorage.setItem("bookings", JSON.stringify(updatedBookings));
-    displayBookings(); // Refresh display
+    displayBookings();
   }
 }
+
+function resetForm() {
+  document.getElementById("meeting-title").value = "";
+  document.getElementById("rooms").value = "";
+  document.getElementById("date").value = "";
+  document.getElementById("from-time").value = "";
+  document.getElementById("to-time").value = "";
+  document.getElementById("edit-id").value = "";
+}
+
+window.addEventListener("DOMContentLoaded", displayBookings);
