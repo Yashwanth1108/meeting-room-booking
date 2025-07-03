@@ -80,9 +80,8 @@ function displayBookings() {
       </tr>
     </thead>
     <tbody>
-      ${bookings
-        .map(
-          (booking) => `
+      ${bookings.map(
+        (booking) => `
         <tr>
           <td>${booking.meetingName}</td>
           <td>${booking.rooms}</td>
@@ -95,8 +94,7 @@ function displayBookings() {
           </td>
         </tr>
       `
-        )
-        .join("")}
+      )}
     </tbody>
   `;
 
